@@ -1,0 +1,18 @@
+package logger
+
+import (
+	"os"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+func NewLoggerFromEnv() (*zap.Logger, error) {
+	level := zapcore.InfoLevel
+	if os.Getenv("LOG_LEVEL") == "debug" {
+		level = zapcore.DebugLevel
+	}
+	cfg := zap.NewProductionConfig()
+	cfg.Level = zap.NewAtomicLevelAt(level)
+	return cfg.Build()
+}

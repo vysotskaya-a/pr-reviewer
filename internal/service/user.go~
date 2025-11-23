@@ -1,0 +1,56 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"pr-reviewer/internal/models"
+	"pr-reviewer/internal/repository"
+)
+
+type UserService interface {
+	CreateUser(ctx context.Context, username string, displayName *string, teamName *string) (*models.User, error)
+	GetUser(ctx context.Context, id string) (*models.User, error)
+	ListUsers(ctx context.Context) ([]models.User, error)
+	UpdateUser(ctx context.Context, id string, displayName *string, isActive *bool, teamName *string) error
+	DeleteUser(ctx context.Context, id string) error
+}
+
+type userService struct {
+	users repository.UserRepository
+	teams repository.TeamRepository
+}
+
+func NewUserService(u repository.UserRepository, t repository.TeamRepository) UserService {
+	return &userService{users: u, teams: t}
+}
+
+func (s *userService) CreateUser(ctx context.Context, username string, displayName *string, teamName *string) (*models.User, error) {
+	// business rule: if teamName provided, must exist
+	if teamName != nil {
+		if _, err := s.teams.GetByName(ctx, *teamName); err != nil {
+			return nil, errors.New("team not found")
+		}
+	}
+	return s.users.Create(ctx, username, displayName, teamName)
+}
+
+func (s *userService) GetUser(ctx context.Context, id string) (*models.User, error) {
+	return s.users.GetByID(ctx, id)
+}
+
+func (s *userService) ListUsers(ctx context.Context) ([]models.User, error) {
+	return s.users.List(ctx)
+}
+
+func (s *userService) UpdateUser(ctx context.Context, id string, displayName *string, isActive *bool, teamName *string) error {
+	if teamName != nil {
+		if _, err := s.teams.GetByName(ctx, *teamName); err != nil {
+			return errors.New("team not found")
+		}
+	}
+	return s.users.Update(ctx, id, displayName, isActive, teamName)
+}
+
+func (s *userService) DeleteUser(ctx context.Context, id string) error {
+	return s.users.Delete(ctx, id)
+}
