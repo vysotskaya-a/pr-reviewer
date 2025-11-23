@@ -80,6 +80,35 @@ func (h *UsersHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(u)
 }
 
+// SetIsActive POST /users/setIsActive
+func (h *UsersHandler) SetIsActive(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		UserID   string `json:"user_id"`
+		IsActive bool   `json:"is_active"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		h.log.Error("SetIsActive: decode error", zap.Error(err))
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if in.UserID == "" {
+		http.Error(w, "user_id required", http.StatusBadRequest)
+		return
+	}
+
+	// вызываем сервисный метод UpdateUser (только isActive меняем)
+	err := h.users.UpdateUser(r.Context(), in.UserID, nil, &in.IsActive, nil)
+	if err != nil {
+		h.log.Error("SetIsActive: service error", zap.Error(err))
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // UpdateUser PUT /users/{id}
 func (h *UsersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

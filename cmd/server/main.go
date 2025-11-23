@@ -48,7 +48,7 @@ func main() {
 
 	// Services
 	userService := service.NewUserService(userRepo, teamRepo)
-	teamService := service.NewTeamService(teamRepo)
+	teamService := service.NewTeamService(teamRepo, userRepo)
 	prService := service.NewPRService(prRepo, userRepo, teamRepo)
 
 	// Handlers

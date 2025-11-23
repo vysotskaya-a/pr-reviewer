@@ -1,39 +1,55 @@
-version: '3.8'
+# docker-compose.yml
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: pr-reviewer-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: reviewdb
+      POSTGRES_DB: reviewdb          # именно reviewdb, как у тебя в URL
+    ports:
+      - "5433:5432"                  # с хоста подключаешься на 5433
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./migrations:/migrations
-    ports:
-      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reviewdb"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   migrate:
     image: migrate/migrate:latest
-    command: ["-path", "/migrations", "-database", "postgres://postgres:postgres@db:5432/reviewdb?sslmode=disable", "up"]
-    depends_on:
-      - db
     volumes:
-      - ./migrations:/migrations
+      - ./migrations:/migrations     # убедись, что папка migrations действительно существует
+    command:
+      - "-path=/migrations"
+      - "-database=postgresql://postgres:postgres@db:5432/reviewdb?sslmode=disable"
+      - "up"
+    depends_on:
+      db:
+        condition: service_healthy   # ждём, пока БД 100% готова
+    restart: on-failure
 
   app:
-    build:
-      context: .
-      dockerfile: build/Dockerfile
+    build: .
+    container_name: pr-reviewer-app
+    restart: unless-stopped
+    env_file:
+      - example.env                  # подхватит PORT и LOG_LEVEL
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      PORT: 8080
-    depends_on:
-      - migrate
-      - db
+      # Переопределяем только DATABASE_URL, чтобы он смотрел именно внутрь сети Docker
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/reviewdb?sslmode=disable
     ports:
-      - "8080:8080"
-    volumes:
-      - ./:/app
+      - "${PORT:-8080}:8080"         # будет 8080 и локально, и в контейнере
+    depends_on:
+      migrate:
+        condition: service_completed_successfully   # стартует только после успешных миграций
 
 volumes:
   db-data:
+
+networks:
+  default:
+    name: pr-reviewer-network

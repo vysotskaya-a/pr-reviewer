@@ -21,64 +21,6 @@ func NewTeamsHandler(ts service.TeamService, log *zap.Logger) *TeamsHandler {
 	return &TeamsHandler{teams: ts, log: log}
 }
 
-// AddTeam POST /team/add
-func (h *TeamsHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		TeamName string `json:"team_name"`
-		Members  []struct {
-			UserID   *string `json:"user_id"`
-			Username string  `json:"username"`
-			IsActive bool    `json:"is_active"`
-		} `json:"members"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		h.log.Error("AddTeam: decode failed", zap.Error(err))
-		http.Error(w, "invalid body", http.StatusBadRequest)
-		return
-	}
-
-	if in.TeamName == "" {
-		http.Error(w, "team_name required", http.StatusBadRequest)
-		return
-	}
-
-	team, err := h.teams.CreateTeam(r.Context(), in.TeamName, nil)
-	if err != nil {
-		h.log.Error("AddTeam: CreateTeam failed", zap.Error(err))
-		http.Error(w, "could not create team", http.StatusInternalServerError)
-		return
-	}
-
-	// обработка списка пользователей
-	for _, m := range in.Members {
-		if m.Username == "" {
-			http.Error(w, "username required", http.StatusBadRequest)
-			return
-		}
-
-		// ВАЖНО: твой сервис сам должен решать:
-		// - создать юзера, если нет id
-		// - обновить/активировать, если id есть
-		err := h.teams.AttachUser(
-			r.Context(),
-			team.TeamName,
-			m.UserID,
-			m.Username,
-			m.IsActive,
-		)
-		if err != nil {
-			h.log.Error("AddTeam: AttachUser failed", zap.Error(err))
-			http.Error(w, "failed to assign user", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(team)
-}
-
 // CreateTeam POST /teams
 func (h *TeamsHandler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 	var in struct {

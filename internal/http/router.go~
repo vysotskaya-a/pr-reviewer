@@ -37,7 +37,7 @@ func NewRouter(
 	// Pull Requests
 	r.Post("/pullRequest/create", prHandler.CreatePR)
 	r.Post("/pullRequest/reassign", prHandler.ReassignReviewer)
-	r.Post("/pullRequest/{id}/merge", prHandler.MergePR)
+	r.Post("/pullRequest/merge", prHandler.MergePR)
 
 	r.Get("/pullRequest/{id}", prHandler.GetPR)
 
