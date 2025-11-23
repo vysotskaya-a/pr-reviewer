@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"pr-reviewer/internal/handlers"
+	"pr-reviewer/internal/http"
 	http_my "pr-reviewer/internal/http"
 	"pr-reviewer/internal/logger"
 	"pr-reviewer/internal/repository"

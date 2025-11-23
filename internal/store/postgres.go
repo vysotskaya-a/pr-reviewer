@@ -36,6 +36,10 @@ func (s *Store) Pool() *pgxpool.Pool {
 	return s.pool
 }
 
+func (s *Store) GetPool() *pgxpool.Pool {
+	return s.pool
+}
+
 func (s *Store) Close() {
 	s.pool.Close()
 }

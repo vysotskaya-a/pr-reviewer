@@ -60,6 +60,25 @@ func (r *userRepoPG) List(ctx context.Context) ([]models.User, error) {
 	return res, nil
 }
 
+func (r *userRepoPG) ListUsersByTeam(ctx context.Context, teamName string) ([]models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	rows, err := r.p.Query(ctx, `SELECT user_id, username, display_name, is_active, team_name, created_at FROM users WHERE team_name = $1`, teamName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	res := make([]models.User, 0)
+	for rows.Next() {
+		var u models.User
+		if err := rows.Scan(&u.UserID, &u.Username, &u.DisplayName, &u.IsActive, &u.TeamName, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+		res = append(res, u)
+	}
+	return res, nil
+}
+
 func (r *userRepoPG) Update(ctx context.Context, id string, displayName *string, isActive *bool, teamName *string) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
